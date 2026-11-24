@@ -1,0 +1,81 @@
+package com.reydiazz.bodeko.core.shopping.cart.model.entity;
+
+import com.reydiazz.bodeko.core.shopping.cart.model.enums.ShoppingCartStatus;
+import com.reydiazz.bodeko.core.store.model.entity.Store;
+import com.reydiazz.bodeko.core.customer.model.entity.Customer;
+import jakarta.persistence.*;
+import lombok.AccessLevel;
+import lombok.AllArgsConstructor;
+import lombok.Builder;
+import lombok.Getter;
+import lombok.RequiredArgsConstructor;
+
+import java.time.OffsetDateTime;
+import java.util.UUID;
+
+@Builder
+@Entity
+@Getter
+@Table(
+        name = "carritos_compra",
+        uniqueConstraints = {
+                @UniqueConstraint(
+                        name = "uq_shopping_carts_id_store",
+                        columnNames = {"id", "tienda_id"}
+                )
+        },
+        indexes = {
+                @Index(
+                        name = "idx_shopping_carts_user_store",
+                        columnList = "cliente_id, tienda_id"
+                ),
+                @Index(
+                        name = "idx_shopping_carts_store_id",
+                        columnList = "tienda_id"
+                )
+        }
+)
+@RequiredArgsConstructor(access = AccessLevel.PROTECTED)
+@AllArgsConstructor(access = AccessLevel.PROTECTED)
+public class ShoppingCart {
+
+    @Id
+    @Column(name = "id", nullable = false, updatable = false)
+    private UUID id;
+
+    @ManyToOne(fetch = FetchType.LAZY,optional = false)
+    @JoinColumn(name = "cliente_id",nullable = false)
+    private Customer user;
+
+    @ManyToOne(fetch = FetchType.LAZY,optional = false)
+    @JoinColumn(name = "tienda_id",nullable = false)
+    private Store store;
+
+    @Builder.Default
+    @Enumerated(EnumType.STRING)
+    @Column(name = "estado",nullable = false)
+    private ShoppingCartStatus status = ShoppingCartStatus.OPEN;
+
+    @Column(name = "creado_en", nullable = false, updatable = false)
+    private OffsetDateTime createdAt;
+
+    @Column(name = "actualizado_en", nullable = false)
+    private OffsetDateTime updatedAt;
+
+    @Column(name = "correo_recuperacion_enviado_en")
+    private OffsetDateTime recoveryEmailSentAt;
+
+    public void touch() {
+        this.updatedAt = OffsetDateTime.now();
+        this.recoveryEmailSentAt = null;
+    }
+
+    public void markRecoveryEmailSent() { this.recoveryEmailSentAt = OffsetDateTime.now(); }
+
+    public void markAsConverted() {
+        this.status = ShoppingCartStatus.CONVERTED;
+        touch();
+    }
+
+
+}

@@ -1,0 +1,52 @@
+package com.reydiazz.bodeko.core.store.repository;
+
+import com.reydiazz.bodeko.core.store.model.entity.Store;
+import com.reydiazz.bodeko.core.catalog.web.response.TopSellingStoreResponse;
+import com.reydiazz.bodeko.core.order.core.model.enums.OrderStatus;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.repository.JpaRepository;
+import org.springframework.data.jpa.repository.Query;
+import org.springframework.data.repository.query.Param;
+
+import java.util.List;
+import java.util.UUID;
+
+public interface StoreRepository extends JpaRepository<Store, UUID> {
+    @Query(value = "select exists(select 1 from tiendas where propietario_id=:ownerId and lower(regexp_replace(btrim(nombre), '\\s+', ' ', 'g'))=:name)", nativeQuery = true)
+    boolean existsNormalizedName(@Param("ownerId") UUID ownerId, @Param("name") String name);
+
+
+    /** Cuenta cada orden vendida una vez. Los empates se ordenan por nombre e identificador. */
+    @Query("""
+            select new com.reydiazz.bodeko.core.catalog.web.response.TopSellingStoreResponse(
+                s.id, s.name, s.subdomain, s.currency, s.taxRate, count(o.id))
+            from Store s join Order o on o.store = s
+            where o.status in :statuses
+            group by s.id, s.name, s.subdomain, s.currency, s.taxRate
+            order by count(o.id) desc, lower(s.name) asc, s.id asc
+            """)
+    List<TopSellingStoreResponse> findTopSelling(@Param("statuses") List<OrderStatus> statuses, Pageable pageable);
+
+    java.util.Optional<Store> findBySubdomainIgnoreCase(String subdomain);
+
+    boolean existsByIdAndOwnerId(UUID id, UUID ownerId);
+
+    java.util.Optional<Store> findByIdAndOwnerId(UUID id, UUID ownerId);
+
+    long countByBillingIssuerId(UUID issuerId);
+
+    @org.springframework.data.jpa.repository.Modifying
+    @org.springframework.data.jpa.repository.Query("update Store s set s.taxId = :taxId, s.legalName = :legalName where s.billingIssuer.id = :issuerId")
+    int updateLegacyBillingData(@org.springframework.data.repository.query.Param("issuerId") UUID issuerId,
+                                @org.springframework.data.repository.query.Param("taxId") String taxId,
+                                @org.springframework.data.repository.query.Param("legalName") String legalName);
+
+    boolean existsByTaxId(String taxId);
+
+    boolean existsBySubdomain(String subdomain);
+
+    List<Store> findAllByOwnerId(UUID ownerId);
+
+    List<Store> findAllByOwnerIdIn(java.util.Collection<UUID> ownerIds);
+
+}
