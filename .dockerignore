@@ -1,0 +1,10 @@
+target/
+.idea/
+.git/
+.github/
+output/
+docs/
+scripts/
+.env
+.env.*
+*.log
