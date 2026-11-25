@@ -8,5 +8,6 @@ public class ProductRouters {
     public final String API_BASE = "/api/stores/{storeId}/products";
     public final String PRODUCT_ID = "/{productId}";
     public final String STATUS = "/{productId}/status";
+    public final String IMAGES = "/images";
 
 }

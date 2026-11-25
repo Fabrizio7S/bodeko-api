@@ -26,6 +26,7 @@ public record CreateProductRequest(
         @Digits(integer = 10, fraction = 2, message = "Base price must have at most 10 integer digits and 2 decimals")
         BigDecimal basePrice,
 
+        @com.fasterxml.jackson.annotation.JsonAlias("imagePath")
         @Size(max = 500, message = "Image URL must have at most 500 characters")
         @jakarta.validation.constraints.Pattern(regexp="^[^\\x00]*$",message="El campo contiene un carácter nulo no permitido")
         String imageUrl,
@@ -35,13 +36,18 @@ public record CreateProductRequest(
         boolean taxExempt
 
 ) {
-    /** Solo se guardan URLs públicas de imagen, nunca esquemas ejecutables o credenciales. */
-    @jakarta.validation.constraints.AssertTrue(message="La imagen debe usar una URL http o https sin credenciales")
+    /**
+     * Acepta la ruta relativa devuelta por POST /products/images (se guarda tal cual) o,
+     * por compatibilidad, una URL http/https sin credenciales. La pertenencia a la tienda
+     * se verifica en el servicio.
+     */
+    @jakarta.validation.constraints.AssertTrue(message="La imagen debe ser una ruta subida o una URL http/https sin credenciales")
     public boolean isImageUrlValid() {
         if (imageUrl==null || imageUrl.isBlank()) return true;
-        try {
-            java.net.URI uri=java.net.URI.create(imageUrl.trim());
-            return uri.getHost()!=null && uri.getUserInfo()==null && ("https".equalsIgnoreCase(uri.getScheme()) || "http".equalsIgnoreCase(uri.getScheme()));
-        } catch (IllegalArgumentException error) { return false; }
+        String value=imageUrl.trim();
+        if (com.reydiazz.bodeko.shared.storage.ImageStorageService.isAbsoluteUrl(value)) {
+            return com.reydiazz.bodeko.shared.storage.ImageStorageService.isValidExternalUrl(value);
+        }
+        return value.matches("^[A-Za-z0-9/_.-]+$") && !value.contains("..") && !value.startsWith("/");
     }
 }

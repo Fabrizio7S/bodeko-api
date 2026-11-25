@@ -12,7 +12,10 @@ public record ProductResponse(
         String name,
         String description,
         BigDecimal basePrice,
+        /** URL pública lista para mostrar (calculada con R2_PUBLIC_URL). */
         String imageUrl,
+        /** Ruta relativa guardada en la base de datos; null si es una URL externa antigua. */
+        String imagePath,
         boolean taxExempt,
         ProductStatus status,
         OffsetDateTime createdAt

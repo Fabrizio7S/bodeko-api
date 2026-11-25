@@ -5,6 +5,8 @@ import com.reydiazz.bodeko.core.shopping.cart.model.entity.ShoppingCart;
 import com.reydiazz.bodeko.core.shopping.cart.web.response.ShoppingCartItemResponse;
 import com.reydiazz.bodeko.core.shopping.cart.web.response.ShoppingCartResponse;
 import com.reydiazz.bodeko.core.product.core.model.entity.Product;
+import com.reydiazz.bodeko.shared.storage.ImageStorageService;
+import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.math.BigDecimal;
@@ -13,7 +15,10 @@ import java.util.Map;
 import java.util.UUID;
 
 @Component
+@RequiredArgsConstructor
 public class ShoppingCartMapper {
+
+    private final ImageStorageService imageStorageService;
 
     public ShoppingCartResponse toResponse(
             ShoppingCart cart,
@@ -51,7 +56,7 @@ public class ShoppingCartMapper {
                 item.getVariant().getSku(),
                 item.getVariant().getOptions(),
                 product.getName(),
-                product.getImageUrl(),
+                imageStorageService.toPublicUrl(product.getImageUrl()),
                 item.getQuantity(),
                 item.getVariant().getBasePrice(),
                 chargedUnitPrice,

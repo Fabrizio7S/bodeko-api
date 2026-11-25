@@ -13,6 +13,7 @@ import com.reydiazz.bodeko.core.product.core.web.request.CreateProductRequest;
 import com.reydiazz.bodeko.core.product.core.web.request.EditProductRequest;
 import com.reydiazz.bodeko.core.product.core.web.response.ProductResponse;
 import com.reydiazz.bodeko.core.store.service.StoreService;
+import com.reydiazz.bodeko.shared.storage.ImageStorageService;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
@@ -34,6 +35,7 @@ public class ProductServiceImpl implements ProductService {
     private final CategoryService categoryService;
     private final InventoryService inventoryService;
     private final ProductVariantRepository productVariantRepository;
+    private final ImageStorageService imageStorageService;
 
     @Override
     @Transactional(readOnly = true)
@@ -61,7 +63,7 @@ public class ProductServiceImpl implements ProductService {
                 .name(com.reydiazz.bodeko.shared.validation.NormalizedText.clean(request.name()))
                 .description(sanitize(request.description()))
                 .basePrice(request.basePrice())
-                .imageUrl(sanitize(request.imageUrl()))
+                .imageUrl(imageStorageService.normalizeProductImage(storeId, request.imageUrl()))
                 .isTaxExempt(request.taxExempt())
                 .createdAt(OffsetDateTime.now())
                 .build();
@@ -80,16 +82,19 @@ public class ProductServiceImpl implements ProductService {
     public ProductResponse update(UUID id, UUID storeId, EditProductRequest request) {
         Product product = productRepository.findByIdAndStoreIdForUpdate(id, storeId).orElseThrow(ProductNotFoundException::new);
         verifyName(storeId, request.name(), id);
+        String previousImage = product.getImageUrl();
+        String newImage = imageStorageService.normalizeProductImage(storeId, request.imageUrl());
         product.update(
                 com.reydiazz.bodeko.shared.validation.NormalizedText.clean(request.name()),
                 sanitize(request.description()),
                 request.basePrice(),
-                sanitize(request.imageUrl()),
+                newImage,
                 request.taxExempt(),
                 resolveCategory(request.categoryId(), storeId)
         );
         productVariantRepository.findByProductIdAndIsDefaultTrue(id)
                 .ifPresent(variant -> variant.updateBasePrice(request.basePrice()));
+        imageStorageService.deleteReplacedImage(previousImage, newImage);
         return productMapper.toResponse(product);
     }
 

@@ -125,6 +125,19 @@ public class GlobalExceptionHandler {
             .message("Faltan parámetros obligatorios o sus valores no son válidos.").build());
     }
 
+    @ExceptionHandler(org.springframework.web.multipart.MaxUploadSizeExceededException.class)
+    public ResponseEntity<ErrorResponse> handleMaxUploadSize(Exception exception) {
+        return ResponseEntity.status(413).body(ErrorResponse.builder().status(413).code("IMAGE_TOO_LARGE")
+            .message("La imagen supera el tamaño máximo de 5 MB.").build());
+    }
+
+    @ExceptionHandler({org.springframework.web.multipart.MultipartException.class,
+            org.springframework.web.multipart.support.MissingServletRequestPartException.class})
+    public ResponseEntity<ErrorResponse> handleMultipart(Exception exception) {
+        return ResponseEntity.badRequest().body(ErrorResponse.builder().status(400).code("IMAGE_REQUIRED")
+            .message("Envía la imagen como multipart/form-data en el campo 'file'.").build());
+    }
+
     @ExceptionHandler(org.springframework.web.HttpMediaTypeNotSupportedException.class)
     public ResponseEntity<ErrorResponse> handleContentType(Exception exception) {
         return ResponseEntity.status(415).body(ErrorResponse.builder().status(415).code("UNSUPPORTED_MEDIA_TYPE")
